@@ -1,0 +1,6 @@
+Title: Mizzou Weather Network
+RefreshSeconds: 300
+Color: 255 255 0
+Font: 1, 11, 1, "Arial"
+
+; Last updated: 2025-10-22 00:46:39.731434
