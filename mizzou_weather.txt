@@ -3,7 +3,7 @@ RefreshSeconds: 300
 Color: 255 255 255
 Font: 1, 11, 1, "Arial"
 
-; Ste. Genevieve weather obs
+; Ste. Genevieve Wx
 Object: 37.981,-90.043
   Threshold: 999
   Text: -12,-12,1,"64",255,0,0  ; Temp (red, top-left)
