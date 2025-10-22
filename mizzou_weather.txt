@@ -3,7 +3,7 @@ RefreshSeconds: 300
 Color: 255 255 0
 Font: 1, 11, 1, "Arial"
 
-Object: 37.981,-90.043
+Object: 37.94568687293312,-90.01852919838186
   Threshold: 999
   Icon: 0,0,000,2,1,"Ste. Genevieve Wx"
   Text: 0,0,1,"Temp: 63 °F"
