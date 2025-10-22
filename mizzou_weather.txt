@@ -1,14 +1,15 @@
 Title: Mizzou Weather Network
 RefreshSeconds: 300
-Color: 255 255 0
+Color: 255 255 255
 Font: 1, 11, 1, "Arial"
 
-Object: 37.94568687293312,-90.01852919838186
+; Ste. Genevieve weather obs
+Object: 37.981,-90.043
   Threshold: 999
-  Text: 0,0,1,"Ste. Genevieve Wx"
-  Text: 0,0,1,"Temp: 63 °F"
-  Text: 0,15,1,"Wind: 8 mph N"
-  Text: 0,30,1,"Rain: 0.02 in"
+  Text: -12,-12,1,"64",255,0,0  ; Temp (red, top-left)
+  Text: -12,12,1,"61",0,255,0   ; Dewpoint (green, bottom-left)
+  Text: 12,0,1,"024",255,255,255 ; Wind dir/speed (white, top-right)
+  Icon: 0,0,000,0,1,""          ; Center dot
 End:
 
-; Last updated: 2025-10-22 01:00:00
+; Last updated: 2025-10-22 01:23:00
