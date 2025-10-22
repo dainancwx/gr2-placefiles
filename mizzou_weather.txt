@@ -3,4 +3,12 @@ RefreshSeconds: 300
 Color: 255 255 0
 Font: 1, 11, 1, "Arial"
 
-; Last updated: 2025-10-22 00:46:39.731434
+Object: 37.981,-90.043
+  Threshold: 999
+  Icon: 0,0,000,2,1,"Ste. Genevieve Wx"
+  Text: 0,0,1,"Temp: 63 °F"
+  Text: 0,15,1,"Wind: 8 mph N"
+  Text: 0,30,1,"Rain: 0.02 in"
+End:
+
+; Last updated: 2025-10-22 00:46:39
