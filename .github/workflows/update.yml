@@ -1,20 +1,32 @@
 name: Update Mizzou Weather
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/15 * * * *"  # every 15 minutes
   workflow_dispatch:
+
+permissions:
+  contents: write  # ✅ allows pushing back to the repo
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - run: pip install requests beautifulsoup4
-      - run: python update_placefile.py
-      - run: |
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run update script
+        run: python update_placefile.py
+
+      - name: Commit and push changes
+        run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add mizzou_weather.txt
