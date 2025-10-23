@@ -9,27 +9,27 @@ def get_weather_data():
     response = requests.get(URL)
     text = response.text
 
-    # Normalize spacing and remove unwanted characters
+    # Clean up weird spacing and symbols
     clean_text = re.sub(r'\s+', ' ', text)
     clean_text = clean_text.replace("Â", "").replace("", "")
 
-    # Updated regex patterns to match site’s table style
-    temp_match = re.search(r'Temperature:\s*\|\s*([\d.]+)°F', clean_text)
-    dew_match = re.search(r'Dewpoint:\s*\|\s*([\d.]+)°F', clean_text)
-    wind_speed_match = re.search(r'Wind Speed:\s*\|\s*([\d.]+)\s*mph', clean_text)
-    wind_dir_match = re.search(r'Wind Direction:\s*\|\s*([A-Z]+)', clean_text)
+    # Try broader regex to match the exact pattern seen in your debug output
+    temp_match = re.search(r'Temperature:\s*\|?\s*([\d.]+)\s*°F', clean_text, re.IGNORECASE)
+    dew_match = re.search(r'Dewpoint:\s*\|?\s*([\d.]+)\s*°F', clean_text, re.IGNORECASE)
+    wind_speed_match = re.search(r'Wind Speed:\s*\|?\s*([\d.]+)\s*mph', clean_text, re.IGNORECASE)
+    wind_dir_match = re.search(r'Wind Direction:\s*\|?\s*([A-Z]+)', clean_text, re.IGNORECASE)
 
     if not all([temp_match, dew_match, wind_speed_match, wind_dir_match]):
         print("DEBUG: Could not find all weather data.")
         print(f"temp={temp_match}, dew={dew_match}, wind_speed={wind_speed_match}, wind_dir={wind_dir_match}")
         snippet_start = clean_text.find("Current Conditions:")
-        print("Parsed snippet:", clean_text[snippet_start:snippet_start + 500])
+        print("Parsed snippet:", clean_text[snippet_start:snippet_start + 600])
         raise ValueError("Could not find all weather data on the page")
 
     temp = float(temp_match.group(1))
     dew = float(dew_match.group(1))
     wind_speed = float(wind_speed_match.group(1))
-    wind_dir = wind_dir_match.group(1)
+    wind_dir = wind_dir_match.group(1).upper()
 
     return temp, dew, wind_speed, wind_dir
 
