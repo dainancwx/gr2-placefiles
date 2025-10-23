@@ -2,41 +2,38 @@ import requests
 import re
 from datetime import datetime
 
-# URL of the Missouri weather station
 URL = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
-
-# Output placefile name
 PLACEFILE = "mizzou_weather.txt"
 
-# Function to scrape and parse data
 def get_weather_data():
     response = requests.get(URL)
     text = response.text
 
-    # Clean up weird spacing and encoding
+    # Normalize spacing and remove unwanted characters
     clean_text = re.sub(r'\s+', ' ', text)
-    clean_text = clean_text.replace("Â", "")
+    clean_text = clean_text.replace("Â", "").replace("", "")
 
-    # Extract key fields
-    temp_match = re.search(r'Temperature:\s*\|?\s*([\d.]+)\s*°F', clean_text)
-    dew_match = re.search(r'Dewpoint:\s*\|?\s*([\d.]+)\s*°F', clean_text)
-    wind_match = re.search(r'Wind Speed:\s*\|?\s*([\d.]+)\s*mph', clean_text)
-    wind_dir_match = re.search(r'Wind Direction:\s*\|?\s*([A-Z]+)', clean_text)
+    # Updated regex patterns to match site’s table style
+    temp_match = re.search(r'Temperature:\s*\|\s*([\d.]+)°F', clean_text)
+    dew_match = re.search(r'Dewpoint:\s*\|\s*([\d.]+)°F', clean_text)
+    wind_speed_match = re.search(r'Wind Speed:\s*\|\s*([\d.]+)\s*mph', clean_text)
+    wind_dir_match = re.search(r'Wind Direction:\s*\|\s*([A-Z]+)', clean_text)
 
-    if not all([temp_match, dew_match, wind_match, wind_dir_match]):
+    if not all([temp_match, dew_match, wind_speed_match, wind_dir_match]):
         print("DEBUG: Could not find all weather data.")
-        print("Parsed snippet:", clean_text[:500])
-        print(f"temp_match={temp_match}, dew_match={dew_match}, wind_match={wind_match}, wind_dir_match={wind_dir_match}")
+        print(f"temp={temp_match}, dew={dew_match}, wind_speed={wind_speed_match}, wind_dir={wind_dir_match}")
+        snippet_start = clean_text.find("Current Conditions:")
+        print("Parsed snippet:", clean_text[snippet_start:snippet_start + 500])
         raise ValueError("Could not find all weather data on the page")
 
     temp = float(temp_match.group(1))
     dew = float(dew_match.group(1))
-    wind_speed = float(wind_match.group(1))
+    wind_speed = float(wind_speed_match.group(1))
     wind_dir = wind_dir_match.group(1)
 
     return temp, dew, wind_speed, wind_dir
 
-# Pick icon color based on temperature
+
 def choose_icon(temp):
     if temp >= 85:
         return "RedDot.png"
@@ -47,12 +44,12 @@ def choose_icon(temp):
     else:
         return "BlueDot.png"
 
-# Generate placefile content
+
 def create_placefile(temp, dew, wind_speed, wind_dir):
     icon = choose_icon(temp)
     lat, lon = 37.935415, -90.132342
 
-    content = f"""; Missouri Weather Station Placefile
+    return f"""; Missouri Weather Station Placefile
 Title: Mizzou Weather - Ste. Genevieve
 Refresh: 1
 Color: 255 255 255
@@ -67,9 +64,8 @@ Object: {lat}, {lon}
   Text: 10, 10, 1, "Temp: {temp}°F  Dew: {dew}°F  Wind: {wind_dir} {wind_speed} mph"
 End:
 """
-    return content
 
-# Main execution
+
 if __name__ == "__main__":
     temp, dew, wind_speed, wind_dir = get_weather_data()
     placefile_text = create_placefile(temp, dew, wind_speed, wind_dir)
