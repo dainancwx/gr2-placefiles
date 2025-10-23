@@ -3,50 +3,69 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 URL = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
-ICON_BASE = "https://dainancwx.github.io/gr2-placefiles"
+PLACEFILE_PATH = "mizzou_weather.txt"
 
 def get_weather_data():
-    res = requests.get(URL)
-    soup = BeautifulSoup(res.text, "html.parser")
+    response = requests.get(URL)
+    soup = BeautifulSoup(response.text, "html.parser")
 
-    # Example: find the temp and dewpoint cells from the table
-    temp = float(soup.find(string="Air Temperature").find_next("td").text.strip())
-    dew = float(soup.find(string="Dew Point").find_next("td").text.strip())
-    wind = soup.find(string="Wind Speed").find_next("td").text.strip()
+    temp = dew = wind = None
 
-    return temp, dew, wind
+    # Look through all table rows
+    for row in soup.find_all("tr"):
+        cells = [c.get_text(strip=True) for c in row.find_all("td")]
+        if not cells:
+            continue
+        # Match keywords in any cell
+        if "Air Temperature" in cells[0]:
+            temp = cells[1].split()[0]
+        elif "Dew Point" in cells[0]:
+            dew = cells[1].split()[0]
+        elif "Wind Speed" in cells[0]:
+            wind = cells[1].split()[0]
 
-def get_icon(temp):
-    if temp < 40:
-        return f"{ICON_BASE}/BlueDot.png"
-    elif temp < 65:
-        return f"{ICON_BASE}/GreenDot.png"
-    elif temp < 85:
-        return f"{ICON_BASE}/YellowDot.png"
+    if not all([temp, dew, wind]):
+        raise ValueError("Could not find all weather data on the page")
+
+    return float(temp), float(dew), float(wind)
+
+def pick_icon(temp):
+    """Pick icon color number based on temp."""
+    if temp >= 85:
+        return 1  # red
+    elif temp >= 70:
+        return 2  # yellow
+    elif temp >= 50:
+        return 3  # green
     else:
-        return f"{ICON_BASE}/RedDot.png"
+        return 4  # blue
 
 def write_placefile(temp, dew, wind):
-    icon_url = get_icon(temp)
-    content = f"""Title: Mizzou Weather Network
+    icon = pick_icon(temp)
+
+    text = f"""Title: Mizzou Weather Network
 RefreshSeconds: 300
 Color: 255 255 255
 Font: 1, 11, 1, "Arial"
-IconFile: 1, {icon_url}
 
-; Ste. Genevieve Wx
+IconFile: 1, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/RedDot.png
+IconFile: 2, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/YellowDot.png
+IconFile: 3, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/GreenDot.png
+IconFile: 4, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/BlueDot.png
+
+; Ste. Genevieve Weather Station
 Object: 37.981,-90.043
   Threshold: 999
-  Text: -12,-12,1,"{int(temp)}°",255,0,0
-  Text: -12,12,1,"{int(dew)}°",0,255,0
-  Text: 12,0,1,"{wind}",255,255,255
-  Icon: 0,0,000,0,1,""
+  Text: -12,-12,1,"Temp: {temp}°F",255,255,255
+  Text: -12,12,1,"Dewpoint: {dew}°F",0,255,0
+  Text: 12,0,1,"Wind: {wind} mph",255,255,255
+  Icon: 0,0,000,0,{icon},"Ste. Genevieve"
 End:
 
-; Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+; Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")}
 """
-    with open("mizzou_weather.txt", "w") as f:
-        f.write(content)
+    with open(PLACEFILE_PATH, "w") as f:
+        f.write(text)
 
 if __name__ == "__main__":
     temp, dew, wind = get_weather_data()
