@@ -2,90 +2,71 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-URL = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
-PLACEFILE_PATH = "mizzou_weather.txt"
-
 def get_weather_data():
-    response = requests.get(URL, timeout=15)
-    soup = BeautifulSoup(response.text, "html.parser")
+    url = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
+    r = requests.get(url)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "html.parser")
 
-    temp = dew = wind = None
+    # Clean text and split by '|'
+    text = soup.get_text(separator="|", strip=True)
+    parts = [p.strip() for p in text.split("|") if p.strip()]
 
-    # Find all tables and scan all cells for numeric data
-    for row in soup.find_all("tr"):
-        cells = [c.get_text(strip=True) for c in row.find_all("td")]
-        if not cells:
-            continue
-        line = " ".join(cells).lower()
+    # Extract values
+    temp = None
+    dew = None
+    wind_speed = None
+    wind_dir = None
 
-        if "temp" in line and temp is None:
-            # Grab first number-like value
-            for c in cells:
-                if c.replace('.', '', 1).isdigit():
-                    temp = c
-                    break
+    for i, part in enumerate(parts):
+        if "Temperature" in part and "°F" in parts[i + 1]:
+            temp = float(parts[i + 1].replace("°F", "").strip())
+        elif "Dewpoint" in part and "°F" in parts[i + 1]:
+            dew = float(parts[i + 1].replace("°F", "").strip())
+        elif "Wind Speed" in part and "mph" in parts[i + 1]:
+            wind_speed = float(parts[i + 1].replace("mph", "").strip())
+        elif "Wind Direction" in part:
+            wind_dir = parts[i + 1].strip()
 
-        elif "dew" in line and dew is None:
-            for c in cells:
-                if c.replace('.', '', 1).isdigit():
-                    dew = c
-                    break
+    if None in (temp, dew, wind_speed, wind_dir):
+        raise ValueError("Could not find all weather data")
 
-        elif "wind" in line and wind is None:
-            # Try to find mph or speed value
-            for c in cells:
-                if any(x in c.lower() for x in ["mph", "kt"]):
-                    wind = c
-                    break
-                if c.replace('.', '', 1).isdigit():
-                    wind = c
-                    break
+    return temp, dew, wind_speed, wind_dir
 
-    if not temp or not dew or not wind:
-        print("DEBUG: Could not find all weather data. Parsed rows:")
-        for row in soup.find_all("tr"):
-            print(row.get_text(" | ", strip=True))
-        raise ValueError("Could not find all weather data on the page")
 
-    return float(temp), float(dew), wind
-
-def pick_icon(temp):
-    """Choose icon color number based on temperature."""
-    if temp >= 85:
-        return 1  # red
-    elif temp >= 70:
-        return 2  # yellow
-    elif temp >= 50:
-        return 3  # green
+def get_icon_for_temp(temp):
+    if temp < 32:
+        return "BlueDot.png"
+    elif temp < 60:
+        return "GreenDot.png"
+    elif temp < 80:
+        return "YellowDot.png"
     else:
-        return 4  # blue
+        return "RedDot.png"
 
-def write_placefile(temp, dew, wind):
-    icon = pick_icon(temp)
-    text = f"""Title: Mizzou Weather Network
+
+def generate_placefile(temp, dew, wind_speed, wind_dir):
+    icon_file = get_icon_for_temp(temp)
+    placefile = f"""Title: Mizzou Weather Network
 RefreshSeconds: 300
 Color: 255 255 255
 Font: 1, 11, 1, "Arial"
 
-IconFile: 1, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/RedDot.png
-IconFile: 2, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/YellowDot.png
-IconFile: 3, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/GreenDot.png
-IconFile: 4, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/BlueDot.png
-
-; Ste. Genevieve Weather Station
+; Ste. Genevieve Wx
 Object: 37.981,-90.043
   Threshold: 999
-  Text: -12,-12,1,"Temp: {temp}°F",255,255,255
-  Text: -12,12,1,"Dewpoint: {dew}°F",0,255,0
-  Text: 12,0,1,"Wind: {wind}",255,255,255
-  Icon: 0,0,000,0,{icon},"Ste. Genevieve"
+  Text: -12,-12,1,"{temp:.1f}°F",255,0,0
+  Text: -12,12,1,"{dew:.1f}°F",0,255,0
+  Text: 12,0,1,"{wind_dir} {wind_speed:.0f} mph",255,255,255
+  Icon: 0,0,000,0,1,"{icon_file}"
 End:
 
-; Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")}
+; Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 """
-    with open(PLACEFILE_PATH, "w") as f:
-        f.write(text)
+    with open("mizzou_weather.txt", "w") as f:
+        f.write(placefile)
+
 
 if __name__ == "__main__":
-    temp, dew, wind = get_weather_data()
-    write_placefile(temp, dew, wind)
+    temp, dew, wind_speed, wind_dir = get_weather_data()
+    generate_placefile(temp, dew, wind_speed, wind_dir)
