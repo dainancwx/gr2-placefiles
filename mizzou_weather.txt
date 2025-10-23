@@ -3,16 +3,14 @@ RefreshSeconds: 300
 Color: 255 255 255
 Font: 1, 11, 1, "Arial"
 
-; use your custom red dot
-File: 1, "https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/RedDotX.svg.png"
-
-; Ste. Genevieve Wx
+; Ste. Genevieve WX
 Object: 37.981,-90.043
   Threshold: 999
-  Text: -12,-12,1,"64",255,0,0      ; Temp (red, top-left)
-  Text: -12,12,1,"61",0,255,0       ; Dewpoint (green, bottom-left)
-  Text: 12,0,1,"024",255,255,255    ; Wind dir/speed (white, top-right)
-  Icon: 0,0,1,1,1,""                ; Center dot (your custom icon)
+  Icon: 0,0,2,1,1,""      ; built-in GR2 dot
+  Color: 200 200 200
+  Text: -12,-12,1,"N/A",255,0,0
+  Text: -12,12,1,"N/A",0,255,0
+  Text: 12,0,1,"N/AN/A",255,255,255
 End:
 
-; Last updated: 2025-10-22 01:23:00
+; Last updated: 2025-10-23 01:11:46 UTC
