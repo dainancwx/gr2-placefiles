@@ -2,18 +2,22 @@ import requests
 import re
 from datetime import datetime
 
-PLACEFILE_PATH = "mizzou_weather.txt"
+# URL of the Missouri weather station
 URL = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
 
+# Output placefile name
+PLACEFILE = "mizzou_weather.txt"
+
+# Function to scrape and parse data
 def get_weather_data():
     response = requests.get(URL)
     text = response.text
 
-    # Clean up HTML text
+    # Clean up weird spacing and encoding
     clean_text = re.sub(r'\s+', ' ', text)
-    clean_text = clean_text.replace("Â", "")  # handle odd encoding characters
+    clean_text = clean_text.replace("Â", "")
 
-    # Regex patterns for each field
+    # Extract key fields
     temp_match = re.search(r'Temperature:\s*\|?\s*([\d.]+)\s*°F', clean_text)
     dew_match = re.search(r'Dewpoint:\s*\|?\s*([\d.]+)\s*°F', clean_text)
     wind_match = re.search(r'Wind Speed:\s*\|?\s*([\d.]+)\s*mph', clean_text)
@@ -32,34 +36,46 @@ def get_weather_data():
 
     return temp, dew, wind_speed, wind_dir
 
+# Pick icon color based on temperature
+def choose_icon(temp):
+    if temp >= 85:
+        return "RedDot.png"
+    elif temp >= 70:
+        return "YellowDot.png"
+    elif temp >= 50:
+        return "GreenDot.png"
+    else:
+        return "BlueDot.png"
 
-def write_placefile(temp, dew, wind_speed, wind_dir):
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+# Generate placefile content
+def create_placefile(temp, dew, wind_speed, wind_dir):
+    icon = choose_icon(temp)
+    lat, lon = 37.935415, -90.132342
 
-    content = f"""Title: Mizzou Weather
-Refresh: 5
+    content = f"""; Missouri Weather Station Placefile
+Title: Mizzou Weather - Ste. Genevieve
+Refresh: 1
 Color: 255 255 255
-Font: 1, 11, 1, "Arial"
+Font: 1, 11, 1, "Courier New"
+IconFile: 1, 25, 25, 12, 12, "{icon}"
+Threshold: 999
 
-Object: 37.935415, -90.132342
+; Data updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Object: {lat}, {lon}
   Threshold: 999
-  Icon: 0,0,000,0,0,"Ste. Genevieve Weather"
-  Text: 0,15,1,"Temp: {temp:.1f}°F"
-  Text: 0,30,1,"Dewpoint: {dew:.1f}°F"
-  Text: 0,45,1,"Wind: {wind_dir} @ {wind_speed:.1f} mph"
-  Text: 0,60,1,"Updated: {now}"
+  Icon: 0,0,{icon}
+  Text: 10, 10, 1, "Temp: {temp}°F  Dew: {dew}°F  Wind: {wind_dir} {wind_speed} mph"
 End:
 """
-    with open(PLACEFILE_PATH, "w") as f:
-        f.write(content)
+    return content
 
-    print(f"✅ Wrote updated placefile: {PLACEFILE_PATH}")
-
-
+# Main execution
 if __name__ == "__main__":
-    try:
-        # ✅ FIXED unpacking: get all four return values
-        temp, dew, wind_speed, wind_dir = get_weather_data()
-        write_placefile(temp, dew, wind_speed, wind_dir)
-    except Exception as e:
-        print(f"Error: {e}")
+    temp, dew, wind_speed, wind_dir = get_weather_data()
+    placefile_text = create_placefile(temp, dew, wind_speed, wind_dir)
+
+    with open(PLACEFILE, "w", encoding="utf-8") as f:
+        f.write(placefile_text)
+
+    print(f"✅ Wrote updated placefile: {PLACEFILE}")
+    print(f"🌡 Temp: {temp}°F | Dew: {dew}°F | Wind: {wind_dir} {wind_speed} mph")
