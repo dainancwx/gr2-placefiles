@@ -1,45 +1,62 @@
-import requests, re, datetime
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
 
-# --- CONFIG ---
-station_name = "Ste. Genevieve Wx"
-lat, lon = 37.981, -90.043
-icon_url = "https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/RedDotX.svg.png"
-output_file = "mizzou_weather.txt"
+URL = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
+OUTPUT_FILE = "mizzou_weather.txt"
 
-# --- SCRAPE TEMP ---
-url = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
-html = requests.get(url).text
-match = re.search(r"Temperature</TD><TD[^>]*>([\d.]+)", html)
-temp = float(match.group(1)) if match else 70.0  # fallback
+r = requests.get(URL, timeout=15)
+soup = BeautifulSoup(r.text, "html.parser")
 
-# --- CHOOSE DOT COLOR ---
-if temp <= 32:
-    color = "0,0,255"       # blue
-elif temp < 60:
-    color = "0,255,255"     # cyan
-elif temp < 80:
-    color = "255,255,0"     # yellow
+def get_val(label):
+    el = soup.find("td", string=lambda s: s and label in s)
+    if el and el.find_next("td"):
+        return el.find_next("td").get_text(strip=True)
+    return "N/A"
+
+temp = get_val("Air Temperature").split()[0]
+dew = get_val("Dew Point").split()[0]
+wind_dir = get_val("Wind Direction").split()[0]
+wind_spd = get_val("Wind Speed").split()[0]
+
+try:
+    t = float(temp)
+except:
+    t = None
+
+# --- choose GR2 color ---
+if t is None:
+    color = (200, 200, 200)      # gray
+elif t <= 32:
+    color = (0, 0, 255)          # blue
+elif t <= 59:
+    color = (0, 255, 0)          # green
+elif t <= 84:
+    color = (255, 255, 0)        # yellow
 else:
-    color = "255,0,0"       # red
+    color = (255, 0, 0)          # red
 
-# --- BUILD PLACEFILE ---
+r, g, b = color
+
 placefile = f"""Title: Mizzou Weather Network
 RefreshSeconds: 300
 Color: 255 255 255
 Font: 1, 11, 1, "Arial"
 
-; dynamic icon based on temperature
-File: 1, "{icon_url}"
-
-Object: {lat},{lon}
+; Ste. Genevieve WX
+Object: 37.981,-90.043
   Threshold: 999
-  Text: -12,-12,1,"{int(temp)}",255,0,0
-  Icon: 0,0,1,1,1,"", {color}
+  Icon: 0,0,2,1,1,""      ; built-in GR2 dot
+  Color: {r} {g} {b}
+  Text: -12,-12,1,"{temp}",255,0,0
+  Text: -12,12,1,"{dew}",0,255,0
+  Text: 12,0,1,"{wind_dir}{wind_spd}",255,255,255
 End:
 
-; Last updated: {datetime.datetime.utcnow():%Y-%m-%d %H:%M:%S} UTC
+; Last updated: {datetime.utcnow():%Y-%m-%d %H:%M:%S UTC}
 """
 
-with open(output_file, "w") as f:
+with open(OUTPUT_FILE, "w") as f:
     f.write(placefile)
-print(f"Updated {output_file} with temp {temp}°F and color {color}")
+
+print("✅ Placefile updated.")
