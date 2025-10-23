@@ -2,63 +2,59 @@ import requests
 import re
 from datetime import datetime
 
+PLACEFILE_PATH = "mizzou_weather.txt"
+URL = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
+
 def get_weather_data():
-    url = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
-    r = requests.get(url)
-    r.raise_for_status()
-    text = r.text
+    response = requests.get(URL)
+    text = response.text
 
-    # Use regex to extract values
-    temp_match = re.search(r"Temperature:\s*\|?\s*([0-9.]+)°F", text)
-    dew_match = re.search(r"Dewpoint:\s*\|?\s*([0-9.]+)°F", text)
-    wind_speed_match = re.search(r"Wind Speed:\s*\|?\s*([0-9.]+)\s*mph", text)
-    wind_dir_match = re.search(r"Wind Direction:\s*\|?\s*([A-Z]+)", text)
+    # Clean up text (remove newlines, collapse whitespace)
+    clean_text = re.sub(r'\s+', ' ', text)
 
-    if not all([temp_match, dew_match, wind_speed_match, wind_dir_match]):
+    # Use regex to find key weather values
+    temp_match = re.search(r'Temperature:\s*\|?\s*([\d.]+)°F', clean_text)
+    dew_match = re.search(r'Dewpoint:\s*\|?\s*([\d.]+)°F', clean_text)
+    wind_match = re.search(r'Wind Speed:\s*\|?\s*([\d.]+)\s*mph', clean_text)
+    wind_dir_match = re.search(r'Wind Direction:\s*\|?\s*([A-Z]+)', clean_text)
+
+    if not all([temp_match, dew_match, wind_match, wind_dir_match]):
+        print("DEBUG: Could not find all weather data.")
+        print(f"temp_match={temp_match}, dew_match={dew_match}, wind_match={wind_match}, wind_dir_match={wind_dir_match}")
         raise ValueError("Could not find all weather data on the page")
 
     temp = float(temp_match.group(1))
     dew = float(dew_match.group(1))
-    wind_speed = float(wind_speed_match.group(1))
+    wind_speed = float(wind_match.group(1))
     wind_dir = wind_dir_match.group(1)
 
-    print(f"DEBUG: Parsed values -> Temp={temp} Dew={dew} Wind={wind_dir} {wind_speed}mph")
     return temp, dew, wind_speed, wind_dir
 
+def write_placefile(temp, dew, wind_speed, wind_dir):
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
-def get_icon_for_temp(temp):
-    if temp < 32:
-        return "BlueDot.png"
-    elif temp < 60:
-        return "GreenDot.png"
-    elif temp < 80:
-        return "YellowDot.png"
-    else:
-        return "RedDot.png"
-
-
-def generate_placefile(temp, dew, wind_speed, wind_dir):
-    icon_file = get_icon_for_temp(temp)
-    placefile = f"""Title: Mizzou Weather Network
-RefreshSeconds: 300
+    placefile = f"""Title: Mizzou Weather
+Refresh: 5
 Color: 255 255 255
 Font: 1, 11, 1, "Arial"
 
-; Ste. Genevieve Wx
-Object: 37.981,-90.043
+Object: 37.935415, -90.132342
   Threshold: 999
-  Text: -12,-12,1,"{temp:.1f}°F",255,0,0
-  Text: -12,12,1,"{dew:.1f}°F",0,255,0
-  Text: 12,0,1,"{wind_dir} {wind_speed:.0f} mph",255,255,255
-  Icon: 0,0,000,0,1,"{icon_file}"
+  Icon: 0,0,000,0,0,"Ste. Genevieve Weather"
+  Text: 0,15,1,"Temp: {temp}°F"
+  Text: 0,30,1,"Dewpoint: {dew}°F"
+  Text: 0,45,1,"Wind: {wind_dir} @ {wind_speed} mph"
+  Text: 0,60,1,"Updated: {now}"
 End:
-
-; Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 """
-    with open("mizzou_weather.txt", "w") as f:
+    with open(PLACEFILE_PATH, "w") as f:
         f.write(placefile)
 
+    print(f"✅ Wrote updated placefile: {PLACEFILE_PATH}")
 
 if __name__ == "__main__":
-    temp, dew, wind_speed, wind_dir = get_weather_data()
-    generate_placefile(temp, dew, wind_speed, wind_dir)
+    try:
+        temp, dew, wind_speed, wind_dir = get_weather_data()
+        write_placefile(temp, dew, wind_speed, wind_dir)
+    except Exception as e:
+        print(f"Error: {e}")
