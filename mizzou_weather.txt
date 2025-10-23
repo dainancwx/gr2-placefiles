@@ -3,14 +3,23 @@ RefreshSeconds: 300
 Color: 255 255 255
 Font: 1, 11, 1, "Arial"
 
-; Ste. Genevieve WX
+; Define icon files (from GitHub)
+IconFile: 1, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/red.png
+IconFile: 2, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/yellow.png
+IconFile: 3, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/green.png
+IconFile: 4, https://raw.githubusercontent.com/dainancwx/gr2-placefiles/main/blue.png
+
+; Ste. Genevieve Weather Station
+; Example logic: red = hot (>85°F), yellow = warm (70–85), green = mild (50–70), blue = cold (<50)
+
 Object: 37.981,-90.043
   Threshold: 999
-  Icon: 0,0,2,1,1,""      ; built-in GR2 dot
-  Color: 200 200 200
-  Text: -12,-12,1,"N/A",255,0,0
-  Text: -12,12,1,"N/A",0,255,0
-  Text: 12,0,1,"N/AN/A",255,255,255
+  ; Example readings
+  Text: -12,-12,1,"Temp: 64°F",255,255,255
+  Text: -12,12,1,"Dewpoint: 61°F",0,255,0
+  Text: 12,0,1,"Wind: 024° 10kt",255,255,255
+  ; Change icon here based on current temperature
+  Icon: 0,0,000,0,3,"Ste. Gen"  ; 1=red, 2=yellow, 3=green, 4=blue
 End:
 
-; Last updated: 2025-10-23 01:11:46 UTC
+; Last updated: 2025-10-22 02:40:00
