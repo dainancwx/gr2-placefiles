@@ -1,36 +1,28 @@
 import requests
-from bs4 import BeautifulSoup
+import re
 from datetime import datetime
 
 def get_weather_data():
     url = "http://agebb.missouri.edu/weather/realtime/ste_genevieve.asp"
     r = requests.get(url)
     r.raise_for_status()
-    soup = BeautifulSoup(r.text, "html.parser")
+    text = r.text
 
-    # Clean text and split by '|'
-    text = soup.get_text(separator="|", strip=True)
-    parts = [p.strip() for p in text.split("|") if p.strip()]
+    # Use regex to extract values
+    temp_match = re.search(r"Temperature:\s*\|?\s*([0-9.]+)°F", text)
+    dew_match = re.search(r"Dewpoint:\s*\|?\s*([0-9.]+)°F", text)
+    wind_speed_match = re.search(r"Wind Speed:\s*\|?\s*([0-9.]+)\s*mph", text)
+    wind_dir_match = re.search(r"Wind Direction:\s*\|?\s*([A-Z]+)", text)
 
-    # Extract values
-    temp = None
-    dew = None
-    wind_speed = None
-    wind_dir = None
+    if not all([temp_match, dew_match, wind_speed_match, wind_dir_match]):
+        raise ValueError("Could not find all weather data on the page")
 
-    for i, part in enumerate(parts):
-        if "Temperature" in part and "°F" in parts[i + 1]:
-            temp = float(parts[i + 1].replace("°F", "").strip())
-        elif "Dewpoint" in part and "°F" in parts[i + 1]:
-            dew = float(parts[i + 1].replace("°F", "").strip())
-        elif "Wind Speed" in part and "mph" in parts[i + 1]:
-            wind_speed = float(parts[i + 1].replace("mph", "").strip())
-        elif "Wind Direction" in part:
-            wind_dir = parts[i + 1].strip()
+    temp = float(temp_match.group(1))
+    dew = float(dew_match.group(1))
+    wind_speed = float(wind_speed_match.group(1))
+    wind_dir = wind_dir_match.group(1)
 
-    if None in (temp, dew, wind_speed, wind_dir):
-        raise ValueError("Could not find all weather data")
-
+    print(f"DEBUG: Parsed values -> Temp={temp} Dew={dew} Wind={wind_dir} {wind_speed}mph")
     return temp, dew, wind_speed, wind_dir
 
 
